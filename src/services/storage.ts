@@ -1,4 +1,4 @@
-﻿import { AppSettings, AppState, Habit, Project, Task, WorkoutTemplate } from '../types';
+﻿import { AppSettings, AppState, DashboardWidgetKey, Habit, Project, Task, WorkoutTemplate } from '../types';
 import { nowIso, todayKey } from '../utils/date';
 import { createId } from '../utils/id';
 
@@ -22,6 +22,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     goals: true,
     water: true,
   },
+  dashboardWidgetOrder: ['gym', 'water', 'habits', 'pomodoro', 'journal', 'goals'],
   pomodoro: {
     focusMinutes: 25,
     shortBreakMinutes: 5,
@@ -188,6 +189,17 @@ export function createInitialState(): AppState {
   };
 }
 
+export function normalizeWidgetOrder(order?: unknown): DashboardWidgetKey[] {
+  const valid: DashboardWidgetKey[] = ['gym', 'water', 'habits', 'pomodoro', 'journal', 'goals'];
+  if (!Array.isArray(order)) return [...valid];
+  const filtered = order.filter((k): k is DashboardWidgetKey => valid.includes(k as DashboardWidgetKey));
+  const unique = Array.from(new Set(filtered));
+  for (const k of valid) {
+    if (!unique.includes(k)) unique.push(k);
+  }
+  return unique;
+}
+
 export function normalizeState(parsed: Partial<AppState>): AppState {
   const fallback = createInitialState();
   return {
@@ -216,6 +228,7 @@ export function normalizeState(parsed: Partial<AppState>): AppState {
         ...DEFAULT_SETTINGS.dashboardWidgets,
         ...(parsed.settings?.dashboardWidgets ?? {}),
       },
+      dashboardWidgetOrder: normalizeWidgetOrder(parsed.settings?.dashboardWidgetOrder),
       pomodoro: {
         ...DEFAULT_SETTINGS.pomodoro,
         ...(parsed.settings?.pomodoro ?? {}),

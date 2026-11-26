@@ -175,6 +175,8 @@ export interface WeeklyReview {
 
 export type NotificationFrequency = 'low' | 'medium' | 'high';
 
+export type DashboardWidgetKey = 'gym' | 'water' | 'habits' | 'pomodoro' | 'journal' | 'goals';
+
 export interface AppSettings {
   theme: ThemeMode;
   accent: AccentColor;
@@ -195,6 +197,7 @@ export interface AppSettings {
     goals: boolean;
     water: boolean;
   };
+  dashboardWidgetOrder: DashboardWidgetKey[];
   pomodoro: {
     focusMinutes: number;
     shortBreakMinutes: number;

@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  ArrowDown,
+  ArrowUp,
   Bell,
   BellOff,
   Cloud,
@@ -16,7 +18,7 @@ import {
   Upload,
 } from 'lucide-react';
 import { useApp } from '../store/AppContext';
-import { AccentColor, NotificationFrequency, ThemeMode } from '../types';
+import { AccentColor, DashboardWidgetKey, NotificationFrequency, ThemeMode } from '../types';
 import {
   getNotificationPermission,
   getRandomNudgeMessage,
@@ -364,38 +366,82 @@ export const SettingsPage: React.FC = () => {
         className="rounded-2xl border p-4 sm:p-5 space-y-3"
         style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
       >
-        <h2 className="text-sm font-semibold">Widgets na Primeira Tela (Dashboard)</h2>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {(
-            [
-              ['gym', 'Academia da Semana'],
-              ['water', 'Água Hoje (Bebi ✓)'],
-              ['habits', 'Hábitos de Hoje'],
-              ['pomodoro', 'Foco Hoje (Pomodoro)'],
-              ['journal', 'Humor & Energia'],
-              ['goals', 'Metas em Andamento'],
-            ] as const
-          ).map(([key, label]) => (
-            <label
-              key={key}
-              className="flex items-center justify-between rounded-xl border px-3 py-2 text-xs cursor-pointer"
-              style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface-2)' }}
-            >
-              <span>{label}</span>
-              <input
-                type="checkbox"
-                checked={state.settings.dashboardWidgets[key]}
-                onChange={(e) =>
-                  updateSettings({
-                    dashboardWidgets: {
-                      ...state.settings.dashboardWidgets,
-                      [key]: e.target.checked,
-                    },
-                  })
-                }
-              />
-            </label>
-          ))}
+        <div>
+          <h2 className="text-sm font-semibold">Widgets na Primeira Tela (Dashboard)</h2>
+          <p className="text-[11px] mt-0.5" style={{ color: 'var(--muted)' }}>
+            Ative, desative ou use as setas para escolher quem aparece primeiro
+          </p>
+        </div>
+        <div className="space-y-2">
+          {(() => {
+            const labels: Record<DashboardWidgetKey, string> = {
+              gym: 'Academia da Semana',
+              water: 'Água Hoje (Bebi ✓)',
+              habits: 'Hábitos de Hoje',
+              pomodoro: 'Foco Hoje (Pomodoro)',
+              journal: 'Humor & Energia',
+              goals: 'Metas em Andamento',
+            };
+            const order = state.settings.dashboardWidgetOrder;
+            const moveWidget = (idx: number, delta: -1 | 1) => {
+              const target = idx + delta;
+              if (target < 0 || target >= order.length) return;
+              const next = [...order];
+              const [item] = next.splice(idx, 1);
+              next.splice(target, 0, item);
+              updateSettings({ dashboardWidgetOrder: next });
+            };
+
+            return order.map((key, idx) => (
+              <div
+                key={key}
+                className="flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-xs"
+                style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface-2)' }}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      disabled={idx === 0}
+                      onClick={() => moveWidget(idx, -1)}
+                      className="rounded-lg border p-1 disabled:opacity-30 cursor-pointer"
+                      style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg)' }}
+                      title="Subir"
+                      aria-label={`Subir ${labels[key]}`}
+                    >
+                      <ArrowUp className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={idx === order.length - 1}
+                      onClick={() => moveWidget(idx, 1)}
+                      className="rounded-lg border p-1 disabled:opacity-30 cursor-pointer"
+                      style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg)' }}
+                      title="Descer"
+                      aria-label={`Descer ${labels[key]}`}
+                    >
+                      <ArrowDown className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <span className="truncate font-medium">{labels[key]}</span>
+                </div>
+
+                <input
+                  type="checkbox"
+                  checked={state.settings.dashboardWidgets[key]}
+                  onChange={(e) =>
+                    updateSettings({
+                      dashboardWidgets: {
+                        ...state.settings.dashboardWidgets,
+                        [key]: e.target.checked,
+                      },
+                    })
+                  }
+                  className="cursor-pointer"
+                />
+              </div>
+            ));
+          })()}
         </div>
       </section>
 

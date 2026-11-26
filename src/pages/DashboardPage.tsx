@@ -22,6 +22,7 @@ import {
   getUrgentTasks,
 } from '../services/analytics';
 import { formatLongDatePT, formatMinutes, getWeekdayShort, todayKey } from '../utils/date';
+import { DashboardWidgetKey } from '../types';
 
 export const DashboardPage: React.FC = () => {
   const {
@@ -217,385 +218,407 @@ export const DashboardPage: React.FC = () => {
         )}
       </section>
 
-      {/* 3. Widgets Rápidos Configuráveis */}
+      {/* 3. Widgets Rápidos Configuráveis (na ordem escolhida pelo usuário) */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {widgets.gym && (
-          <section
-            className="rounded-2xl border p-4"
-            style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Dumbbell className="h-4 w-4" style={{ color: 'var(--accent)' }} />
-                <h3 className="text-sm font-semibold">Academia da Semana</h3>
-                {suggestedWorkout && (
-                  <span
-                    className="rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
-                    style={{ backgroundColor: 'var(--surface-2)', color: 'var(--muted)' }}
-                  >
-                    Hoje: {suggestedWorkout.code}
-                  </span>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => setActivePage('gym')}
-                className="text-xs font-medium hover:underline cursor-pointer"
-                style={{ color: 'var(--accent)' }}
+        {state.settings.dashboardWidgetOrder.map((widgetKey: DashboardWidgetKey) => {
+          if (widgetKey === 'gym' && widgets.gym) {
+            return (
+              <section
+                key="gym"
+                className="rounded-2xl border p-4"
+                style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
               >
-                Abrir Academia
-              </button>
-            </div>
-
-            <div className="grid grid-cols-7 gap-1.5 mb-3">
-              {gymWeek.currentWeek.days.map((d) => {
-                const done = d.sessions.length > 0;
-                return (
-                  <div
-                    key={d.dateKey}
-                    className="flex flex-col items-center rounded-lg border py-1.5 text-[11px]"
-                    style={{
-                      borderColor: done ? 'var(--accent)' : 'var(--border)',
-                      backgroundColor: done ? 'var(--accent-soft)' : 'var(--surface-2)',
-                    }}
-                  >
-                    <span style={{ color: 'var(--muted)' }}>
-                      {getWeekdayShort(d.dateKey).slice(0, 3)}
-                    </span>
-                    <span
-                      className="font-bold mt-0.5"
-                      style={{ color: done ? 'var(--accent)' : 'var(--text)' }}
-                    >
-                      {done ? d.sessions.map((s) => s.code).join('+') : '·'}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-xs mr-1" style={{ color: 'var(--muted)' }}>
-                Registrar hoje:
-              </span>
-              {activeWorkouts.map((w) => {
-                const isNext = suggestedWorkout?.id === w.id;
-                return (
-                  <button
-                    key={w.id}
-                    type="button"
-                    disabled={gymCooldown}
-                    onClick={() => handleQuickWorkout(w.id)}
-                    className="rounded-lg border px-2.5 py-1 text-xs font-semibold transition hover:opacity-90 disabled:opacity-50 cursor-pointer"
-                    style={{
-                      borderColor: w.color,
-                      backgroundColor: isNext ? w.color : `${w.color}18`,
-                      color: isNext ? '#03150e' : w.color,
-                    }}
-                  >
-                    Treino {w.code}
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
-        {widgets.water && (
-          <section
-            className="rounded-2xl border p-4 flex flex-col justify-between"
-            style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Droplets className="h-4 w-4 text-cyan-400" />
-                <h3 className="text-sm font-semibold">Água Hoje</h3>
-              </div>
-              <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--accent)' }}>
-                {waterToday} / {waterGoal} copos
-              </span>
-            </div>
-
-            <div className="my-2">
-              <div className="h-2 w-full overflow-hidden rounded-full" style={{ backgroundColor: 'var(--surface-2)' }}>
-                <div
-                  className="h-full rounded-full transition-all"
-                  style={{ width: `${waterPercent}%`, backgroundColor: '#06b6d4' }}
-                />
-              </div>
-              <p className="mt-1.5 text-[11px]" style={{ color: 'var(--muted)' }}>
-                {waterToday >= waterGoal
-                  ? 'Meta de hidratação batida hoje! 💧'
-                  : `Faltam ${waterGoal - waterToday} copos para sua meta (+2 XP por copo).`}
-              </p>
-            </div>
-
-            <div className="flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => removeWaterGlass(today)}
-                disabled={waterToday <= 0}
-                className="rounded-xl border p-2 disabled:opacity-40 cursor-pointer"
-                style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface-2)' }}
-                title="Remover 1 copo"
-              >
-                <Minus className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => addWaterGlass(today)}
-                className="flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold cursor-pointer"
-                style={{ backgroundColor: '#06b6d4', color: '#02181c' }}
-              >
-                <Droplets className="h-3.5 w-3.5" />
-                Bebi ✓
-              </button>
-            </div>
-          </section>
-        )}
-
-        {widgets.habits && (
-          <section
-            className="rounded-2xl border p-4"
-            style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Flame className="h-4 w-4 text-amber-400" />
-                <h3 className="text-sm font-semibold">Hábitos de Hoje</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActivePage('habits')}
-                className="text-xs font-medium hover:underline cursor-pointer"
-                style={{ color: 'var(--accent)' }}
-              >
-                Gerenciar
-              </button>
-            </div>
-
-            {activeHabits.length === 0 ? (
-              <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                Nenhum hábito ativo. Crie um pela aba lateral.
-              </p>
-            ) : (
-              <div className="space-y-1.5">
-                {activeHabits.slice(0, 5).map((h) => {
-                  const done = Boolean(h.logs[today]);
-                  return (
-                    <button
-                      key={h.id}
-                      type="button"
-                      onClick={() => toggleHabitLog(h.id, today)}
-                      className="flex w-full items-center justify-between rounded-xl border px-3 py-2 text-xs font-medium transition cursor-pointer"
-                      style={{
-                        borderColor: done ? h.color : 'var(--border)',
-                        backgroundColor: done ? `${h.color}18` : 'var(--surface-2)',
-                      }}
-                    >
-                      <span className={done ? 'line-through opacity-75' : ''}>{h.title}</span>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Dumbbell className="h-4 w-4" style={{ color: 'var(--accent)' }} />
+                    <h3 className="text-sm font-semibold">Academia da Semana</h3>
+                    {suggestedWorkout && (
                       <span
-                        className="flex h-4 w-4 items-center justify-center rounded"
-                        style={{
-                          backgroundColor: done ? h.color : 'transparent',
-                          border: done ? 'none' : '1px solid var(--border)',
-                          color: '#03150e',
-                        }}
+                        className="rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
+                        style={{ backgroundColor: 'var(--surface-2)', color: 'var(--muted)' }}
                       >
-                        {done && <Check className="h-3 w-3 stroke-[3]" />}
+                        Hoje: {suggestedWorkout.code}
                       </span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-        )}
-
-        {widgets.pomodoro && (
-          <section
-            className="rounded-2xl border p-4 flex flex-col justify-between"
-            style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Timer className="h-4 w-4" style={{ color: 'var(--accent)' }} />
-                <h3 className="text-sm font-semibold">Foco Hoje</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActivePage('pomodoro')}
-                className="text-xs font-medium hover:underline cursor-pointer"
-                style={{ color: 'var(--accent)' }}
-              >
-                Abrir Timer
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between gap-3 py-2">
-              <div>
-                <p className="text-2xl font-bold tabular-nums">{formatMinutes(todayFocusMinutes)}</p>
-                <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                  acumulados em sessões Pomodoro hoje
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  startPomodoro(urgentTasks[0]?.id ?? null);
-                  setActivePage('pomodoro');
-                }}
-                className="rounded-xl px-3.5 py-2 text-xs font-semibold cursor-pointer"
-                style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-fg)' }}
-              >
-                Iniciar {state.settings.pomodoro.focusMinutes}m
-              </button>
-            </div>
-          </section>
-        )}
-
-        {widgets.journal && (
-          <section
-            className="rounded-2xl border p-4"
-            style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4" style={{ color: 'var(--accent)' }} />
-                <h3 className="text-sm font-semibold">Humor & Energia Hoje</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActivePage('journal')}
-                className="text-xs font-medium hover:underline cursor-pointer"
-                style={{ color: 'var(--accent)' }}
-              >
-                Abrir Diário
-              </button>
-            </div>
-
-            {todayJournal ? (
-              <div className="space-y-1 text-xs">
-                <div className="flex gap-3 font-medium tabular-nums">
-                  <span>Humor: {todayJournal.mood}/5</span>
-                  <span>Energia: {todayJournal.energy}/5</span>
-                </div>
-                <p className="line-clamp-2" style={{ color: 'var(--muted)' }}>
-                  {todayJournal.note}
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2.5 pt-1">
-                <div className="flex items-center justify-between text-xs">
-                  <span style={{ color: 'var(--muted)' }}>Humor</span>
-                  <div className="flex gap-1">
-                    {([1, 2, 3, 4, 5] as const).map((m) => (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={() => setPickMood(m)}
-                        className="h-7 w-7 rounded-lg border text-xs font-semibold cursor-pointer"
-                        style={{
-                          borderColor: pickMood === m ? 'var(--accent)' : 'var(--border)',
-                          backgroundColor: pickMood === m ? 'var(--accent)' : 'var(--surface-2)',
-                          color: pickMood === m ? 'var(--accent-fg)' : 'var(--text)',
-                        }}
-                      >
-                        {m}
-                      </button>
-                    ))}
+                    )}
                   </div>
-                </div>
-
-                <div className="flex items-center justify-between text-xs">
-                  <span style={{ color: 'var(--muted)' }}>Energia</span>
-                  <div className="flex gap-1">
-                    {([1, 2, 3, 4, 5] as const).map((en) => (
-                      <button
-                        key={en}
-                        type="button"
-                        onClick={() => setPickEnergy(en)}
-                        className="h-7 w-7 rounded-lg border text-xs font-semibold cursor-pointer"
-                        style={{
-                          borderColor: pickEnergy === en ? 'var(--accent)' : 'var(--border)',
-                          backgroundColor: pickEnergy === en ? 'var(--accent)' : 'var(--surface-2)',
-                          color: pickEnergy === en ? 'var(--accent-fg)' : 'var(--text)',
-                        }}
-                      >
-                        {en}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    saveJournalEntry({
-                      date: today,
-                      mood: pickMood,
-                      energy: pickEnergy,
-                      note: 'Check-in rápido pelo Dashboard.',
-                    })
-                  }
-                  className="w-full rounded-xl py-1.5 text-xs font-semibold cursor-pointer"
-                  style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-fg)' }}
-                >
-                  Salvar Check-in (+15 XP)
-                </button>
-              </div>
-            )}
-          </section>
-        )}
-
-        {widgets.goals && activeGoals.length > 0 && (
-          <section
-            className="rounded-2xl border p-4 md:col-span-2"
-            style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Target className="h-4 w-4" style={{ color: 'var(--accent)' }} />
-                <h3 className="text-sm font-semibold">Metas em Andamento</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActivePage('goals')}
-                className="text-xs font-medium hover:underline cursor-pointer"
-                style={{ color: 'var(--accent)' }}
-              >
-                Ver todas
-              </button>
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {activeGoals.map((goal) => {
-                const prog = getGoalProgress(goal, state);
-                return (
-                  <div
-                    key={goal.id}
-                    className="rounded-xl border p-3"
-                    style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface-2)' }}
+                  <button
+                    type="button"
+                    onClick={() => setActivePage('gym')}
+                    className="text-xs font-medium hover:underline cursor-pointer"
+                    style={{ color: 'var(--accent)' }}
                   >
-                    <div className="flex items-center justify-between text-xs font-medium mb-1.5">
-                      <span className="truncate">{goal.title}</span>
-                      <span className="tabular-nums" style={{ color: 'var(--accent)' }}>
-                        {prog.percent}%
-                      </span>
-                    </div>
-                    <div className="h-1.5 w-full overflow-hidden rounded-full" style={{ backgroundColor: 'var(--bg)' }}>
+                    Abrir Academia
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-7 gap-1.5 mb-3">
+                  {gymWeek.currentWeek.days.map((d) => {
+                    const done = d.sessions.length > 0;
+                    return (
                       <div
-                        className="h-full rounded-full"
-                        style={{ width: `${prog.percent}%`, backgroundColor: 'var(--accent)' }}
-                      />
-                    </div>
-                    <p className="mt-1 text-[11px]" style={{ color: 'var(--muted)' }}>
-                      {prog.label}
+                        key={d.dateKey}
+                        className="flex flex-col items-center rounded-lg border py-1.5 text-[11px]"
+                        style={{
+                          borderColor: done ? 'var(--accent)' : 'var(--border)',
+                          backgroundColor: done ? 'var(--accent-soft)' : 'var(--surface-2)',
+                        }}
+                      >
+                        <span style={{ color: 'var(--muted)' }}>
+                          {getWeekdayShort(d.dateKey).slice(0, 3)}
+                        </span>
+                        <span
+                          className="font-bold mt-0.5"
+                          style={{ color: done ? 'var(--accent)' : 'var(--text)' }}
+                        >
+                          {done ? d.sessions.map((s) => s.code).join('+') : '·'}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs mr-1" style={{ color: 'var(--muted)' }}>
+                    Registrar hoje:
+                  </span>
+                  {activeWorkouts.map((w) => {
+                    const isNext = suggestedWorkout?.id === w.id;
+                    return (
+                      <button
+                        key={w.id}
+                        type="button"
+                        disabled={gymCooldown}
+                        onClick={() => handleQuickWorkout(w.id)}
+                        className="rounded-lg border px-2.5 py-1 text-xs font-semibold transition hover:opacity-90 disabled:opacity-50 cursor-pointer"
+                        style={{
+                          borderColor: w.color,
+                          backgroundColor: isNext ? w.color : `${w.color}18`,
+                          color: isNext ? '#03150e' : w.color,
+                        }}
+                      >
+                        Treino {w.code}
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          }
+
+          if (widgetKey === 'water' && widgets.water) {
+            return (
+              <section
+                key="water"
+                className="rounded-2xl border p-4 flex flex-col justify-between"
+                style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Droplets className="h-4 w-4 text-cyan-400" />
+                    <h3 className="text-sm font-semibold">Água Hoje</h3>
+                  </div>
+                  <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--accent)' }}>
+                    {waterToday} / {waterGoal} copos
+                  </span>
+                </div>
+
+                <div className="my-2">
+                  <div className="h-2 w-full overflow-hidden rounded-full" style={{ backgroundColor: 'var(--surface-2)' }}>
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{ width: `${waterPercent}%`, backgroundColor: '#06b6d4' }}
+                    />
+                  </div>
+                  <p className="mt-1.5 text-[11px]" style={{ color: 'var(--muted)' }}>
+                    {waterToday >= waterGoal
+                      ? 'Meta de hidratação batida hoje! 💧'
+                      : `Faltam ${waterGoal - waterToday} copos para sua meta (+2 XP por copo).`}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => removeWaterGlass(today)}
+                    disabled={waterToday <= 0}
+                    className="rounded-xl border p-2 disabled:opacity-40 cursor-pointer"
+                    style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface-2)' }}
+                    title="Remover 1 copo"
+                  >
+                    <Minus className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => addWaterGlass(today)}
+                    className="flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold cursor-pointer"
+                    style={{ backgroundColor: '#06b6d4', color: '#02181c' }}
+                  >
+                    <Droplets className="h-3.5 w-3.5" />
+                    Bebi ✓
+                  </button>
+                </div>
+              </section>
+            );
+          }
+
+          if (widgetKey === 'habits' && widgets.habits) {
+            return (
+              <section
+                key="habits"
+                className="rounded-2xl border p-4"
+                style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Flame className="h-4 w-4 text-amber-400" />
+                    <h3 className="text-sm font-semibold">Hábitos de Hoje</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActivePage('habits')}
+                    className="text-xs font-medium hover:underline cursor-pointer"
+                    style={{ color: 'var(--accent)' }}
+                  >
+                    Gerenciar
+                  </button>
+                </div>
+
+                {activeHabits.length === 0 ? (
+                  <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                    Nenhum hábito ativo. Crie um pela aba lateral.
+                  </p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {activeHabits.slice(0, 5).map((h) => {
+                      const done = Boolean(h.logs[today]);
+                      return (
+                        <button
+                          key={h.id}
+                          type="button"
+                          onClick={() => toggleHabitLog(h.id, today)}
+                          className="flex w-full items-center justify-between rounded-xl border px-3 py-2 text-xs font-medium transition cursor-pointer"
+                          style={{
+                            borderColor: done ? h.color : 'var(--border)',
+                            backgroundColor: done ? `${h.color}18` : 'var(--surface-2)',
+                          }}
+                        >
+                          <span className={done ? 'line-through opacity-75' : ''}>{h.title}</span>
+                          <span
+                            className="flex h-4 w-4 items-center justify-center rounded"
+                            style={{
+                              backgroundColor: done ? h.color : 'transparent',
+                              border: done ? 'none' : '1px solid var(--border)',
+                              color: '#03150e',
+                            }}
+                          >
+                            {done && <Check className="h-3 w-3 stroke-[3]" />}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            );
+          }
+
+          if (widgetKey === 'pomodoro' && widgets.pomodoro) {
+            return (
+              <section
+                key="pomodoro"
+                className="rounded-2xl border p-4 flex flex-col justify-between"
+                style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Timer className="h-4 w-4" style={{ color: 'var(--accent)' }} />
+                    <h3 className="text-sm font-semibold">Foco Hoje</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActivePage('pomodoro')}
+                    className="text-xs font-medium hover:underline cursor-pointer"
+                    style={{ color: 'var(--accent)' }}
+                  >
+                    Abrir Timer
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 py-2">
+                  <div>
+                    <p className="text-2xl font-bold tabular-nums">{formatMinutes(todayFocusMinutes)}</p>
+                    <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                      acumulados em sessões Pomodoro hoje
                     </p>
                   </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      startPomodoro(urgentTasks[0]?.id ?? null);
+                      setActivePage('pomodoro');
+                    }}
+                    className="rounded-xl px-3.5 py-2 text-xs font-semibold cursor-pointer"
+                    style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-fg)' }}
+                  >
+                    Iniciar {state.settings.pomodoro.focusMinutes}m
+                  </button>
+                </div>
+              </section>
+            );
+          }
+
+          if (widgetKey === 'journal' && widgets.journal) {
+            return (
+              <section
+                key="journal"
+                className="rounded-2xl border p-4"
+                style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="h-4 w-4" style={{ color: 'var(--accent)' }} />
+                    <h3 className="text-sm font-semibold">Humor & Energia Hoje</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActivePage('journal')}
+                    className="text-xs font-medium hover:underline cursor-pointer"
+                    style={{ color: 'var(--accent)' }}
+                  >
+                    Abrir Diário
+                  </button>
+                </div>
+
+                {todayJournal ? (
+                  <div className="space-y-1 text-xs">
+                    <div className="flex gap-3 font-medium tabular-nums">
+                      <span>Humor: {todayJournal.mood}/5</span>
+                      <span>Energia: {todayJournal.energy}/5</span>
+                    </div>
+                    <p className="line-clamp-2" style={{ color: 'var(--muted)' }}>
+                      {todayJournal.note}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5 pt-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span style={{ color: 'var(--muted)' }}>Humor</span>
+                      <div className="flex gap-1">
+                        {([1, 2, 3, 4, 5] as const).map((m) => (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => setPickMood(m)}
+                            className="h-7 w-7 rounded-lg border text-xs font-semibold cursor-pointer"
+                            style={{
+                              borderColor: pickMood === m ? 'var(--accent)' : 'var(--border)',
+                              backgroundColor: pickMood === m ? 'var(--accent)' : 'var(--surface-2)',
+                              color: pickMood === m ? 'var(--accent-fg)' : 'var(--text)',
+                            }}
+                          >
+                            {m}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs">
+                      <span style={{ color: 'var(--muted)' }}>Energia</span>
+                      <div className="flex gap-1">
+                        {([1, 2, 3, 4, 5] as const).map((en) => (
+                          <button
+                            key={en}
+                            type="button"
+                            onClick={() => setPickEnergy(en)}
+                            className="h-7 w-7 rounded-lg border text-xs font-semibold cursor-pointer"
+                            style={{
+                              borderColor: pickEnergy === en ? 'var(--accent)' : 'var(--border)',
+                              backgroundColor: pickEnergy === en ? 'var(--accent)' : 'var(--surface-2)',
+                              color: pickEnergy === en ? 'var(--accent-fg)' : 'var(--text)',
+                            }}
+                          >
+                            {en}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        saveJournalEntry({
+                          date: today,
+                          mood: pickMood,
+                          energy: pickEnergy,
+                          note: 'Check-in rápido pelo Dashboard.',
+                        })
+                      }
+                      className="w-full rounded-xl py-1.5 text-xs font-semibold cursor-pointer"
+                      style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-fg)' }}
+                    >
+                      Salvar Check-in (+15 XP)
+                    </button>
+                  </div>
+                )}
+              </section>
+            );
+          }
+
+          if (widgetKey === 'goals' && widgets.goals && activeGoals.length > 0) {
+            return (
+              <section
+                key="goals"
+                className="rounded-2xl border p-4 md:col-span-2"
+                style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Target className="h-4 w-4" style={{ color: 'var(--accent)' }} />
+                    <h3 className="text-sm font-semibold">Metas em Andamento</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActivePage('goals')}
+                    className="text-xs font-medium hover:underline cursor-pointer"
+                    style={{ color: 'var(--accent)' }}
+                  >
+                    Ver todas
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {activeGoals.map((goal) => {
+                    const prog = getGoalProgress(goal, state);
+                    return (
+                      <div
+                        key={goal.id}
+                        className="rounded-xl border p-3"
+                        style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface-2)' }}
+                      >
+                        <div className="flex items-center justify-between text-xs font-medium mb-1.5">
+                          <span className="truncate">{goal.title}</span>
+                          <span className="tabular-nums" style={{ color: 'var(--accent)' }}>
+                            {prog.percent}%
+                          </span>
+                        </div>
+                        <div className="h-1.5 w-full overflow-hidden rounded-full" style={{ backgroundColor: 'var(--bg)' }}>
+                          <div
+                            className="h-full rounded-full"
+                            style={{ width: `${prog.percent}%`, backgroundColor: 'var(--accent)' }}
+                          />
+                        </div>
+                        <p className="mt-1 text-[11px]" style={{ color: 'var(--muted)' }}>
+                          {prog.label}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          }
+
+          return null;
+        })}
       </div>
     </div>
   );
