@@ -150,7 +150,6 @@ export const GlobalHeatmap: React.FC = () => {
           const level = info?.level ?? 0;
           const isSelected = selectedDate === dateKey;
           const isTodayCell = dateKey === today;
-          const dayNum = Number(dateKey.slice(8));
 
           return (
             <button
@@ -158,10 +157,9 @@ export const GlobalHeatmap: React.FC = () => {
               type="button"
               onClick={() => setSelectedDate(dateKey)}
               title={`${formatShortDatePT(dateKey)}: ${info?.tasksDone ?? 0} tarefas, ${info?.habitsDone ?? 0} hábitos, ${info?.workouts.length ?? 0} treino(s)`}
-              className="flex aspect-square max-h-10 w-full items-center justify-center rounded-lg text-[10px] font-medium tabular-nums transition-transform hover:scale-105 cursor-pointer"
+              className="aspect-square max-h-10 w-full rounded-lg transition-transform hover:scale-105 cursor-pointer"
               style={{
                 backgroundColor: HEAT_COLORS[level],
-                color: level >= 3 ? '#03150e' : 'var(--muted)',
                 outline: isSelected
                   ? '2px solid var(--text)'
                   : isTodayCell
@@ -169,9 +167,7 @@ export const GlobalHeatmap: React.FC = () => {
                     : 'none',
                 outlineOffset: '1px',
               }}
-            >
-              {dayNum}
-            </button>
+            />
           );
         })}
       </div>

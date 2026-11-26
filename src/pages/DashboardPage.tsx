@@ -107,7 +107,7 @@ export const DashboardPage: React.FC = () => {
           <p className="text-xs font-medium capitalize" style={{ color: 'var(--muted)' }}>
             {formatLongDatePT(today)}
           </p>
-          <h1 className="text-2xl font-bold tracking-tight">Seu painel de hoje</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
