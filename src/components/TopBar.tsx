@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { BellOff, Flame, MoreVertical, Pause, Play, Timer, Zap } from 'lucide-react';
 import { useApp } from '../store/AppContext';
 import { PageId } from '../types';
@@ -47,15 +47,48 @@ export const TopBar: React.FC = () => {
 
   const showPomodoroPill = pomodoro.isRunning || pomodoro.secondsLeft !== baseSeconds;
 
+  const [hidden, setHidden] = useState(false);
+  const lastYRef = useRef(0);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY;
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+      const pastHalf = scrollable > 120 && y > scrollable * 0.5;
+      const goingDown = y > lastYRef.current + 6;
+      const goingUp = y < lastYRef.current - 6;
+
+      if (!pastHalf) {
+        setHidden(false);
+      } else if (goingDown) {
+        setHidden(true);
+      } else if (goingUp) {
+        setHidden(false);
+      }
+      lastYRef.current = y;
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    setHidden(false);
+  }, [activePage]);
+
   return (
-    <header
-      className="sticky top-0 z-30 h-14 border-b backdrop-blur-md"
-      style={{
-        borderColor: 'var(--border)',
-        backgroundColor: 'color-mix(in srgb, var(--bg) 85%, transparent)',
-      }}
-    >
-      <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-4 sm:px-6">
+    <>
+      <header
+        className={`fixed top-0 left-0 right-0 z-30 border-b backdrop-blur-md transition-transform duration-200 ${
+          hidden ? '-translate-y-full' : 'translate-y-0'
+        }`}
+        style={{
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+          borderColor: 'var(--border)',
+          backgroundColor: 'color-mix(in srgb, var(--bg) 88%, transparent)',
+        }}
+      >
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-3 min-w-0">
           <button
             type="button"
@@ -152,7 +185,7 @@ export const TopBar: React.FC = () => {
           <button
             type="button"
             onClick={() => openDrawer(null)}
-            className="flex h-9 w-9 items-center justify-center rounded-xl border transition hover:scale-[1.03] active:scale-[0.98] cursor-pointer"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border transition hover:scale-[1.03] active:scale-[0.98] cursor-pointer touch-manipulation"
             style={{
               borderColor: 'var(--border)',
               backgroundColor: 'var(--surface)',
@@ -165,6 +198,12 @@ export const TopBar: React.FC = () => {
           </button>
         </div>
       </div>
-    </header>
+      </header>
+      <div
+        aria-hidden="true"
+        className="shrink-0"
+        style={{ height: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}
+      />
+    </>
   );
 };
