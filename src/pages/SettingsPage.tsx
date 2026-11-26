@@ -1,7 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ArrowDown,
-  ArrowUp,
   Bell,
   BellOff,
   Cloud,
@@ -9,6 +7,7 @@ import {
   Download,
   Droplets,
   FolderOpen,
+  GripVertical,
   LogOut,
   Palette,
   RefreshCw,
@@ -104,6 +103,50 @@ export const SettingsPage: React.FC = () => {
   useEffect(() => {
     getBackupFolderStatus().then(setFolderStatus);
   }, []);
+
+  // Arrastar e soltar widgets (mouse + toque)
+  const [draggingWidget, setDraggingWidget] = useState<DashboardWidgetKey | null>(null);
+  const widgetRowRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const widgetOrderRef = useRef<DashboardWidgetKey[]>(state.settings.dashboardWidgetOrder);
+  widgetOrderRef.current = state.settings.dashboardWidgetOrder;
+
+  const startWidgetDrag = (key: DashboardWidgetKey, e: React.PointerEvent) => {
+    e.preventDefault();
+    setDraggingWidget(key);
+
+    const onMove = (ev: PointerEvent) => {
+      const order = widgetOrderRef.current;
+      const currentIdx = order.indexOf(key);
+      if (currentIdx === -1) return;
+
+      for (let i = 0; i < order.length; i++) {
+        if (i === currentIdx) continue;
+        const el = widgetRowRefs.current[order[i]];
+        if (!el) continue;
+        const rect = el.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        if ((i < currentIdx && ev.clientY < midY) || (i > currentIdx && ev.clientY > midY)) {
+          const next = [...order];
+          const [moved] = next.splice(currentIdx, 1);
+          next.splice(i, 0, moved);
+          widgetOrderRef.current = next;
+          updateSettings({ dashboardWidgetOrder: next });
+          break;
+        }
+      }
+    };
+
+    const onUp = () => {
+      setDraggingWidget(null);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+    };
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+  };
 
   const showStatus = (msg: string) => {
     setStatusMsg(msg);
@@ -369,7 +412,7 @@ export const SettingsPage: React.FC = () => {
         <div>
           <h2 className="text-sm font-semibold">Widgets na Primeira Tela (Dashboard)</h2>
           <p className="text-[11px] mt-0.5" style={{ color: 'var(--muted)' }}>
-            Ative, desative ou use as setas para escolher quem aparece primeiro
+            Segure e arraste pelos 6 pontinhos (⋮⋮) para mudar a ordem
           </p>
         </div>
         <div className="space-y-2">
@@ -382,65 +425,52 @@ export const SettingsPage: React.FC = () => {
               journal: 'Humor & Energia',
               goals: 'Metas em Andamento',
             };
-            const order = state.settings.dashboardWidgetOrder;
-            const moveWidget = (idx: number, delta: -1 | 1) => {
-              const target = idx + delta;
-              if (target < 0 || target >= order.length) return;
-              const next = [...order];
-              const [item] = next.splice(idx, 1);
-              next.splice(target, 0, item);
-              updateSettings({ dashboardWidgetOrder: next });
-            };
-
-            return order.map((key, idx) => (
-              <div
-                key={key}
-                className="flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-xs"
-                style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface-2)' }}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="flex items-center gap-1">
+            return state.settings.dashboardWidgetOrder.map((key) => {
+              const isDragging = draggingWidget === key;
+              return (
+                <div
+                  key={key}
+                  ref={(el) => {
+                    widgetRowRefs.current[key] = el;
+                  }}
+                  className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-xs transition-all ${
+                    isDragging ? 'scale-[1.02] shadow-lg z-10' : ''
+                  }`}
+                  style={{
+                    borderColor: isDragging ? 'var(--accent)' : 'var(--border)',
+                    backgroundColor: isDragging ? 'var(--accent-soft)' : 'var(--surface-2)',
+                  }}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
                     <button
                       type="button"
-                      disabled={idx === 0}
-                      onClick={() => moveWidget(idx, -1)}
-                      className="rounded-lg border p-1 disabled:opacity-30 cursor-pointer"
-                      style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg)' }}
-                      title="Subir"
-                      aria-label={`Subir ${labels[key]}`}
+                      onPointerDown={(e) => startWidgetDrag(key, e)}
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg touch-none select-none cursor-grab active:cursor-grabbing"
+                      style={{ color: isDragging ? 'var(--accent)' : 'var(--muted)' }}
+                      title="Arrastar para reordenar"
+                      aria-label={`Arrastar ${labels[key]}`}
                     >
-                      <ArrowUp className="h-3.5 w-3.5" />
+                      <GripVertical className="h-4 w-4" />
                     </button>
-                    <button
-                      type="button"
-                      disabled={idx === order.length - 1}
-                      onClick={() => moveWidget(idx, 1)}
-                      className="rounded-lg border p-1 disabled:opacity-30 cursor-pointer"
-                      style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg)' }}
-                      title="Descer"
-                      aria-label={`Descer ${labels[key]}`}
-                    >
-                      <ArrowDown className="h-3.5 w-3.5" />
-                    </button>
+                    <span className="truncate font-medium">{labels[key]}</span>
                   </div>
-                  <span className="truncate font-medium">{labels[key]}</span>
-                </div>
 
-                <input
-                  type="checkbox"
-                  checked={state.settings.dashboardWidgets[key]}
-                  onChange={(e) =>
-                    updateSettings({
-                      dashboardWidgets: {
-                        ...state.settings.dashboardWidgets,
-                        [key]: e.target.checked,
-                      },
-                    })
-                  }
-                  className="cursor-pointer"
-                />
-              </div>
-            ));
+                  <input
+                    type="checkbox"
+                    checked={state.settings.dashboardWidgets[key]}
+                    onChange={(e) =>
+                      updateSettings({
+                        dashboardWidgets: {
+                          ...state.settings.dashboardWidgets,
+                          [key]: e.target.checked,
+                        },
+                      })
+                    }
+                    className="h-4 w-4 cursor-pointer"
+                  />
+                </div>
+              );
+            });
           })()}
         </div>
       </section>
