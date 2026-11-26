@@ -2,20 +2,20 @@ import React, { useMemo, useState } from 'react';
 import {
   CalendarDays,
   CheckCircle2,
+  ChevronDown,
   Droplets,
   Dumbbell,
   Flame,
   NotebookPen,
-  Plus,
   Timer,
-  X,
 } from 'lucide-react';
 import { useApp } from '../store/AppContext';
 import { HeatmapCategory } from '../types';
 import { getDailyActivityMap, getDaySummary } from '../services/analytics';
 import { formatLongDatePT, formatMinutes, formatShortDatePT, getLastNDays, todayKey } from '../utils/date';
 
-const EXTRA_CATEGORIES: { id: HeatmapCategory; label: string }[] = [
+const CATEGORIES: { id: HeatmapCategory; label: string }[] = [
+  { id: 'all', label: 'Geral' },
   { id: 'tasks', label: 'Tarefas' },
   { id: 'habits', label: 'Hábitos' },
   { id: 'pomodoro', label: 'Foco' },
@@ -29,7 +29,6 @@ const HEAT_COLORS = ['var(--heat-0)', 'var(--heat-1)', 'var(--heat-2)', 'var(--h
 export const GlobalHeatmap: React.FC = () => {
   const { state } = useApp();
   const [category, setCategory] = useState<HeatmapCategory>('all');
-  const [showFilters, setShowFilters] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>(todayKey());
 
   const today = todayKey();
@@ -41,8 +40,6 @@ export const GlobalHeatmap: React.FC = () => {
     () => days40.filter((dk) => (activityMap[dk]?.level ?? 0) > 0).length,
     [days40, activityMap]
   );
-
-  const activeExtraLabel = EXTRA_CATEGORIES.find((c) => c.id === category)?.label;
 
   return (
     <section
@@ -65,81 +62,29 @@ export const GlobalHeatmap: React.FC = () => {
           </p>
         </div>
 
-        {/* Somente "Geral" + "+" (que abre as outras opções) */}
-        <div className="relative flex items-center gap-1.5">
-          <div
-            className="flex items-center gap-1 rounded-xl border p-1"
-            style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg)' }}
+        {/* Seletor único (inclui Geral e todas as categorias) */}
+        <div className="relative inline-flex items-center">
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value as HeatmapCategory)}
+            aria-label="Escolher visualização do mapa"
+            className="appearance-none rounded-xl border py-1.5 pl-3 pr-8 text-xs font-medium outline-none cursor-pointer"
+            style={{
+              backgroundColor: 'var(--bg)',
+              borderColor: 'var(--border)',
+              color: 'var(--accent)',
+            }}
           >
-            <button
-              type="button"
-              onClick={() => {
-                setCategory('all');
-                setShowFilters(false);
-              }}
-              className="rounded-lg px-2.5 py-1 text-xs font-medium transition cursor-pointer"
-              style={{
-                backgroundColor: category === 'all' ? 'var(--accent-soft)' : 'transparent',
-                color: category === 'all' ? 'var(--accent)' : 'var(--muted)',
-              }}
-            >
-              Geral
-            </button>
-
-            {activeExtraLabel && (
-              <span
-                className="rounded-lg px-2.5 py-1 text-xs font-medium"
-                style={{
-                  backgroundColor: 'var(--accent-soft)',
-                  color: 'var(--accent)',
-                }}
-              >
-                {activeExtraLabel}
-              </span>
-            )}
-
-            <button
-              type="button"
-              onClick={() => setShowFilters((v) => !v)}
-              className="flex h-6 w-6 items-center justify-center rounded-lg transition cursor-pointer"
-              style={{
-                backgroundColor: showFilters ? 'var(--surface-2)' : 'transparent',
-                color: showFilters ? 'var(--text)' : 'var(--muted)',
-              }}
-              aria-label="Escolher outra visualização"
-              title="Mais visualizações"
-            >
-              {showFilters ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
-            </button>
-          </div>
-
-          {showFilters && (
-            <div
-              className="absolute right-0 top-full mt-1.5 z-20 flex flex-wrap gap-1 rounded-xl border p-1.5 shadow-xl w-56 animate-fade-in"
-              style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
-            >
-              {EXTRA_CATEGORIES.map((cat) => {
-                const active = category === cat.id;
-                return (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => {
-                      setCategory(cat.id);
-                      setShowFilters(false);
-                    }}
-                    className="rounded-lg px-2.5 py-1 text-xs font-medium transition cursor-pointer"
-                    style={{
-                      backgroundColor: active ? 'var(--accent-soft)' : 'var(--surface-2)',
-                      color: active ? 'var(--accent)' : 'var(--text)',
-                    }}
-                  >
-                    {cat.label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+            {CATEGORIES.map((cat) => (
+              <option key={cat.id} value={cat.id} style={{ backgroundColor: 'var(--surface)', color: 'var(--text)' }}>
+                {cat.label}
+              </option>
+            ))}
+          </select>
+          <ChevronDown
+            className="pointer-events-none absolute right-2.5 h-3.5 w-3.5"
+            style={{ color: 'var(--muted)' }}
+          />
         </div>
       </div>
 
